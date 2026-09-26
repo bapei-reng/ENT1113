@@ -12,18 +12,67 @@ public class GameEnding : MonoBehaviour
     public AudioSource exitAudio;
     public CanvasGroup caughtBackgroundImageCanvasGroup;
     public AudioSource caughtAudio;
+    public RepairMachine repairMachine;
+    public GameHUD gameHud;
+    public Collider lockedDoorCollider;
+    public GameObject lockedDoor;
 
     bool m_IsPlayerAtExit;
     bool m_IsPlayerCaught;
     float m_Timer;
     bool m_HasAudioPlayed;
+
+    bool CanExit => repairMachine == null || repairMachine.IsRepaired;
+
+    void OnEnable ()
+    {
+        if (repairMachine != null)
+            repairMachine.StateChanged += RefreshDoor;
+        RefreshDoor();
+    }
+
+    void OnDisable ()
+    {
+        if (repairMachine != null)
+            repairMachine.StateChanged -= RefreshDoor;
+    }
+
+    void RefreshDoor ()
+    {
+        if (lockedDoor != null)
+        {
+            lockedDoor.SetActive(!CanExit);
+        }
+        else if (lockedDoorCollider != null && lockedDoorCollider.enabled != !CanExit)
+            lockedDoorCollider.enabled = !CanExit;
+    }
+
+    public void NotifyLockedDoorContact (GameObject other)
+    {
+        if (other == player && !CanExit)
+            gameHud?.ShowMessage("门不能从这一侧打开");
+    }
     
     void OnTriggerEnter (Collider other)
     {
         if (other.gameObject == player)
         {
-            m_IsPlayerAtExit = true;
+            if (CanExit)
+                m_IsPlayerAtExit = true;
+            else
+                gameHud?.ShowMessage("门不能从这一侧打开");
         }
+    }
+
+    void OnTriggerStay (Collider other)
+    {
+        if (other.gameObject == player && CanExit)
+            m_IsPlayerAtExit = true;
+    }
+
+    void OnCollisionEnter (Collision collision)
+    {
+        NotifyLockedDoorContact(collision.gameObject);
     }
 
     public void CaughtPlayer ()
