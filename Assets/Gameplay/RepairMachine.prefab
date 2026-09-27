@@ -403,7 +403,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f1b15d8d117cd542bac2ecc61d71999, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactionRadius: 2.1
+  interactionRadius: 1.5
   stageDuration: 15
   stageLights:
   - {fileID: 3312860349811455262}

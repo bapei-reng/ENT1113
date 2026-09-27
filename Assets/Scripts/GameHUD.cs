@@ -13,9 +13,15 @@ public class GameHUD : MonoBehaviour
     [SerializeField] private Text promptText;
     [SerializeField] private Text messageText;
     [SerializeField] private Slider progressBar;
+    [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private Text sprintText;
 
     private float messageUntil;
     private string currentPrompt;
+    private bool sprintReadyShown;
+    private int sprintCooldownTenths = -1;
+    private bool sprintActiveShown;
+    private int sprintActiveTenths = -1;
 
     private void OnEnable()
     {
@@ -39,6 +45,53 @@ public class GameHUD : MonoBehaviour
     {
         if (messageText != null && messageText.enabled && Time.time >= messageUntil)
             messageText.enabled = false;
+
+        RefreshSprint();
+    }
+
+    private void RefreshSprint()
+    {
+        if (playerMovement == null || sprintText == null)
+            return;
+
+        if (playerMovement.IsSprinting)
+        {
+            int activeTenths = Mathf.CeilToInt(playerMovement.SprintRemaining * 10f);
+            if (sprintActiveShown && activeTenths == sprintActiveTenths)
+                return;
+
+            sprintActiveShown = true;
+            sprintReadyShown = false;
+            sprintCooldownTenths = -1;
+            sprintActiveTenths = activeTenths;
+            sprintText.text = "Shift 冲刺：×" + playerMovement.SpeedMultiplier.ToString("0.0") +
+                              " 加速中 " + (activeTenths / 10f).ToString("0.0") + " 秒";
+            sprintText.color = new Color(1f, 0.86f, 0.42f);
+            return;
+        }
+
+        sprintActiveShown = false;
+
+        if (playerMovement.IsSprintReady)
+        {
+            if (sprintReadyShown)
+                return;
+
+            sprintReadyShown = true;
+            sprintCooldownTenths = -1;
+            sprintText.text = "Shift 冲刺：就绪";
+            sprintText.color = new Color(0.55f, 1f, 0.6f);
+            return;
+        }
+
+        int tenths = Mathf.CeilToInt(playerMovement.SprintCooldownRemaining * 10f);
+        if (!sprintReadyShown && tenths == sprintCooldownTenths)
+            return;
+
+        sprintReadyShown = false;
+        sprintCooldownTenths = tenths;
+        sprintText.text = "Shift 冲刺：冷却 " + (tenths / 10f).ToString("0.0") + " 秒";
+        sprintText.color = new Color(1f, 1f, 1f, 0.8f);
     }
 
     public void SetPrompt(string prompt)

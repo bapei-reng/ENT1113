@@ -7,6 +7,7 @@ public class GameEnding : MonoBehaviour
 {
     public float fadeDuration = 1f;
     public float displayImageDuration = 1f;
+    public float victoryResetDelay = 3f;
     public GameObject player;
     public CanvasGroup exitBackgroundImageCanvasGroup;
     public AudioSource exitAudio;
@@ -19,8 +20,10 @@ public class GameEnding : MonoBehaviour
 
     bool m_IsPlayerAtExit;
     bool m_IsPlayerCaught;
-    float m_Timer;
-    bool m_HasAudioPlayed;
+    float m_VictoryTimer;
+    float m_CaughtTimer;
+    bool m_HasVictoryAudioPlayed;
+    bool m_HasCaughtAudioPlayed;
 
     bool CanExit => repairMachine == null || repairMachine.IsRepaired;
 
@@ -83,36 +86,63 @@ public class GameEnding : MonoBehaviour
     void Update ()
     {
         if (m_IsPlayerAtExit)
-        {
-            EndLevel (exitBackgroundImageCanvasGroup, false, exitAudio);
-        }
+            UpdateVictorySequence ();
         else if (m_IsPlayerCaught)
-        {
-            EndLevel (caughtBackgroundImageCanvasGroup, true, caughtAudio);
-        }
+            UpdateCaughtSequence ();
     }
 
-    void EndLevel (CanvasGroup imageCanvasGroup, bool doRestart, AudioSource audioSource)
+    void UpdateVictorySequence ()
     {
-        if (!m_HasAudioPlayed)
+        if (Input.GetKeyDown (KeyCode.Return) || Input.GetKeyDown (KeyCode.KeypadEnter))
         {
-            audioSource.Play();
-            m_HasAudioPlayed = true;
+            ResetLevelAfterVictory ();
+            return;
         }
-            
-        m_Timer += Time.deltaTime;
-        imageCanvasGroup.alpha = m_Timer / fadeDuration;
 
-        if (m_Timer > fadeDuration + displayImageDuration)
+        if (!m_HasVictoryAudioPlayed)
         {
-            if (doRestart)
-            {
-                SceneManager.LoadScene (0);
-            }
-            else
-            {
-                Application.Quit ();
-            }
+            if (exitAudio != null)
+                exitAudio.Play ();
+            m_HasVictoryAudioPlayed = true;
         }
+
+        m_VictoryTimer += Time.deltaTime;
+        FadeIn (exitBackgroundImageCanvasGroup, m_VictoryTimer);
+
+        if (m_VictoryTimer > victoryResetDelay)
+            ResetLevelAfterVictory ();
+    }
+
+    void UpdateCaughtSequence ()
+    {
+        if (!m_HasCaughtAudioPlayed)
+        {
+            if (caughtAudio != null)
+                caughtAudio.Play ();
+            m_HasCaughtAudioPlayed = true;
+        }
+
+        m_CaughtTimer += Time.deltaTime;
+        FadeIn (caughtBackgroundImageCanvasGroup, m_CaughtTimer);
+
+        if (m_CaughtTimer > fadeDuration + displayImageDuration)
+            RestartLevelAfterCaught ();
+    }
+
+    void FadeIn (CanvasGroup imageCanvasGroup, float elapsed)
+    {
+        if (imageCanvasGroup != null)
+            imageCanvasGroup.alpha = elapsed / fadeDuration;
+    }
+
+    void ResetLevelAfterVictory ()
+    {
+        SceneManager.LoadScene (0);
+    }
+
+    void RestartLevelAfterCaught ()
+    {
+        GameSession.Clear ();
+        SceneManager.LoadScene (0);
     }
 }

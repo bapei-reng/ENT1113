@@ -9,8 +9,14 @@ public class PlayerInteraction : MonoBehaviour
 
     private readonly Collider[] nearbyColliders = new Collider[128];
 
+    private bool isRepairing;
+
+    public bool IsRepairing => isRepairing;
+
     private void Update()
     {
+        isRepairing = false;
+
         if (Input.GetKeyDown(KeyCode.Escape))
         {
 #if UNITY_EDITOR
@@ -54,6 +60,8 @@ public class PlayerInteraction : MonoBehaviour
 
         if (atMachine && machine.StageUnlocked && Input.GetKey(KeyCode.E))
         {
+            isRepairing = true;
+            ReadRepairKeyInput();
             if (machine.Advance(Time.deltaTime))
                 hud?.ShowMessage(machine.IsRepaired ? "机器已修好，出口已解锁" : "本段破译完成，可以插入下一把钥匙");
         }
@@ -63,8 +71,11 @@ public class PlayerInteraction : MonoBehaviour
 
         if (pickup != null)
             hud.SetPrompt("E  拾取 " + pickup.Item.DisplayName);
+        else if (isRepairing)
+            hud.SetPrompt("按住 E 破译｜按 " + KeyLabel(machine.RequiredKey) + " 加速 ×" +
+                          machine.RepairSpeed.ToString("0.0") + "｜按错减速");
         else if (atMachine && machine.StageUnlocked)
-            hud.SetPrompt("按住 E 破译，离开时进度暂停");
+            hud.SetPrompt("按住 E 破译，按提示方向键加速，按错减速");
         else if (atMachine && !machine.IsRepaired)
             hud.SetPrompt("切换到钥匙，按 R 插入");
         else
@@ -94,5 +105,28 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         return nearest;
+    }
+
+    private void ReadRepairKeyInput()
+    {
+        for (int i = 0; i < RepairMachine.RepairKeys.Length; i++)
+        {
+            if (Input.GetKeyDown(RepairMachine.RepairKeys[i]))
+            {
+                machine.SubmitRepairKey(RepairMachine.RepairKeys[i]);
+                return;
+            }
+        }
+    }
+
+    private static string KeyLabel(KeyCode key)
+    {
+        switch (key)
+        {
+            case KeyCode.UpArrow: return "↑";
+            case KeyCode.DownArrow: return "↓";
+            case KeyCode.LeftArrow: return "←";
+            default: return "→";
+        }
     }
 }
