@@ -29,7 +29,7 @@ The inventory holds three items. Find the three keys, insert one to unlock each 
 
 Every cleared level offers three random bonuses. `J` / `K` / `L` picks one, `←` / `→` move the highlight and `Enter` confirms the highlighted one. The picked value is stored in `GameSession` (`Assets/Scripts/PlayerUpgrades.cs`), so it survives the level reset and is read by the scene components in their `Start`.
 
-`PlayerUpgrades.MagnitudeMultiplier` is the bonus magnitude hook: `1` gives the real values listed below, and every other value scales all player bonuses by that factor. Bonuses are scaled when they are read, so changing the field also rescales bonuses that were already picked, and the upgrade panel prints the scaled numbers. It does not scale the enemy enhancements. The field is currently set to `100` for testing — set it back to `1` before balancing.
+`PlayerUpgrades.MagnitudeMultiplier` is the bonus magnitude hook: `1` gives the real values listed below, and every other value scales all player bonuses by that factor. Bonuses are scaled when they are read, so changing the field also rescales bonuses that were already picked, and the upgrade panel prints the scaled numbers. It does not scale the enemy enhancements. It is set to `1` (real values); raise it temporarily if you want to test the effects quickly.
 
 - `人物速度 ×1.01` / `人物速度 +0.03`: multiplies or adds to the base movement speed.
 - `修机判定范围 +0.05`: repair interaction radius (base 1.5).

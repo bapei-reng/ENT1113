@@ -32,10 +32,9 @@ public static class PlayerUpgrades
     public const int ChoicesPerLevel = 3;
     public const int EnemyEnhancementInterval = 2;
 
-    // 加成倍率接口：1 = 正常数值，调大后所有玩家加成按同一倍率放大。
+    // 加成倍率接口：1 = 正常数值，调大后所有玩家加成按同一倍率放大（测试时可临时调大）。
     // 数值在读取时换算，所以改完立即对已经拿到的加成生效；只影响玩家加成，不影响敌人加强。
-    // 目前临时设为 100 倍，方便快速验证加成效果。
-    public static float MagnitudeMultiplier = 100f;
+    public static float MagnitudeMultiplier = 1f;
 
     static float ScaledStep (float baseStep)
     {
