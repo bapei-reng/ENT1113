@@ -12,6 +12,9 @@ public class WaypointPatrol : MonoBehaviour
 
     void Start ()
     {
+        if (navMeshAgent != null)
+            navMeshAgent.speed += PlayerUpgrades.EnemySpeedBonus;
+
         navMeshAgent.SetDestination (waypoints[0].position);
     }
 

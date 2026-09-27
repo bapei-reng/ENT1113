@@ -18,6 +18,7 @@ public class PlayerMovement : MonoBehaviour
     Quaternion m_Rotation = Quaternion.identity;
     float m_SprintStartTime = float.NegativeInfinity;
     float m_SprintReadyTime = float.NegativeInfinity;
+    float m_BaseSpeedMultiplier = 1f;
 
     public bool IsSprintReady => Time.time >= m_SprintReadyTime;
     public bool IsSprinting => Time.time - m_SprintStartTime < sprintDuration;
@@ -49,6 +50,12 @@ public class PlayerMovement : MonoBehaviour
         m_Rigidbody = GetComponent<Rigidbody> ();
         m_AudioSource = GetComponent<AudioSource> ();
         m_Interaction = GetComponent<PlayerInteraction> ();
+
+        m_BaseSpeedMultiplier = PlayerUpgrades.SpeedFactor;
+        sprintSpeedMultiplier += PlayerUpgrades.SprintSpeedBonus;
+        sprintHoldDuration += PlayerUpgrades.SprintDurationBonus;
+        sprintDuration += PlayerUpgrades.SprintDurationBonus;
+        sprintCooldown = Mathf.Max (sprintCooldown - PlayerUpgrades.SprintCooldownReduction, sprintHoldDuration);
     }
 
     void Update ()
@@ -56,7 +63,7 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown (KeyCode.LeftShift) || Input.GetKeyDown (KeyCode.RightShift))
             TryStartSprint ();
 
-        m_Animator.speed = SpeedMultiplier;
+        m_Animator.speed = SpeedMultiplier * m_BaseSpeedMultiplier;
     }
 
     void TryStartSprint ()

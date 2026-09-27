@@ -23,6 +23,7 @@ public class RepairMachine : MonoBehaviour
     private bool stageUnlocked;
     private float stageTime;
     private float repairSpeed = 1f;
+    private float repairSpeedFactor = 1f;
     private KeyCode requiredKey = KeyCode.UpArrow;
 
     public event Action StateChanged;
@@ -33,7 +34,35 @@ public class RepairMachine : MonoBehaviour
     public float StageDuration => stageDuration;
     public float StageTime => stageTime;
     public float RepairSpeed => repairSpeed;
+    public float RepairRate => repairSpeed * repairSpeedFactor;
+    public float CorrectPressMultiplier => correctPressMultiplier;
+    public float WrongPressMultiplier => wrongPressMultiplier;
+    public float KeyMultiplierMin => minSpeedMultiplier;
+    public float KeyMultiplierMax => maxSpeedMultiplier;
     public KeyCode RequiredKey => requiredKey;
+
+    private void Start()
+    {
+        interactionRadius += PlayerUpgrades.RepairRangeBonus;
+        repairSpeedFactor = PlayerUpgrades.RepairSpeedFactor;
+        ApplyKeyZoneUpgrades();
+    }
+
+    // 按键乘区的按对/按错倍率和它的上下限都受加成影响，所以每局开始时的初始上下限都不同。
+    private void ApplyKeyZoneUpgrades()
+    {
+        float baseCorrect = correctPressMultiplier;
+        float baseWrong = wrongPressMultiplier;
+
+        correctPressMultiplier += PlayerUpgrades.CorrectPressBonus;
+        wrongPressMultiplier = Mathf.Min(1f, wrongPressMultiplier + PlayerUpgrades.WrongPressBonus);
+
+        if (baseCorrect > 0f)
+            maxSpeedMultiplier *= correctPressMultiplier / baseCorrect;
+
+        float basePenalty = Mathf.Max(0.0001f, 1f - baseWrong);
+        minSpeedMultiplier = 1f - (1f - minSpeedMultiplier) * (1f - wrongPressMultiplier) / basePenalty;
+    }
 
     private void Update()
     {
@@ -111,7 +140,7 @@ public class RepairMachine : MonoBehaviour
         if (!stageUnlocked || IsRepaired || deltaTime <= 0f)
             return false;
 
-        stageTime = Mathf.Min(stageDuration, stageTime + deltaTime * repairSpeed);
+        stageTime = Mathf.Min(stageDuration, stageTime + deltaTime * repairSpeed * repairSpeedFactor);
         if (stageTime < stageDuration)
         {
             StateChanged?.Invoke();

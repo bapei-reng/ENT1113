@@ -13,6 +13,11 @@ public class PlayerInteraction : MonoBehaviour
 
     public bool IsRepairing => isRepairing;
 
+    private void Start()
+    {
+        pickupRadius += PlayerUpgrades.PickupRangeBonus;
+    }
+
     private void Update()
     {
         isRepairing = false;
@@ -72,8 +77,10 @@ public class PlayerInteraction : MonoBehaviour
         if (pickup != null)
             hud.SetPrompt("E  拾取 " + pickup.Item.DisplayName);
         else if (isRepairing)
-            hud.SetPrompt("按住 E 破译｜按 " + KeyLabel(machine.RequiredKey) + " 加速 ×" +
-                          machine.RepairSpeed.ToString("0.0") + "｜按错减速");
+            hud.SetPrompt("按住 E 破译｜按 " + KeyLabel(machine.RequiredKey) + " 按键 ×" +
+                          FormatMultiplier(machine.RepairSpeed) + "（" +
+                          FormatMultiplier(machine.KeyMultiplierMin) + "~" +
+                          FormatMultiplier(machine.KeyMultiplierMax) + "）｜按错减速");
         else if (atMachine && machine.StageUnlocked)
             hud.SetPrompt("按住 E 破译，按提示方向键加速，按错减速");
         else if (atMachine && !machine.IsRepaired)
@@ -128,5 +135,15 @@ public class PlayerInteraction : MonoBehaviour
             case KeyCode.LeftArrow: return "←";
             default: return "→";
         }
+    }
+
+    private static string FormatMultiplier(float value)
+    {
+        if (value >= 100f)
+            return value.ToString("0");
+        if (value >= 10f)
+            return value.ToString("0.0");
+
+        return value.ToString("0.00");
     }
 }

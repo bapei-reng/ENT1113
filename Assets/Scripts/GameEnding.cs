@@ -7,7 +7,7 @@ public class GameEnding : MonoBehaviour
 {
     public float fadeDuration = 1f;
     public float displayImageDuration = 1f;
-    public float victoryResetDelay = 3f;
+    public float upgradeConfirmDelay = 1.2f;
     public GameObject player;
     public CanvasGroup exitBackgroundImageCanvasGroup;
     public AudioSource exitAudio;
@@ -24,6 +24,15 @@ public class GameEnding : MonoBehaviour
     float m_CaughtTimer;
     bool m_HasVictoryAudioPlayed;
     bool m_HasCaughtAudioPlayed;
+
+    enum VictoryPhase { Inactive, Choosing, Confirmed }
+
+    VictoryPhase m_VictoryPhase;
+    UpgradeOption[] m_UpgradeOptions;
+    float m_ConfirmTimer;
+
+    const string VictoryCheatCode = "bapeireng";
+    string m_CheatBuffer = string.Empty;
 
     bool CanExit => repairMachine == null || repairMachine.IsRepaired;
 
@@ -85,18 +94,41 @@ public class GameEnding : MonoBehaviour
 
     void Update ()
     {
+        UpdateCheatCode ();
+
         if (m_IsPlayerAtExit)
             UpdateVictorySequence ();
         else if (m_IsPlayerCaught)
             UpdateCaughtSequence ();
     }
 
+    void UpdateCheatCode ()
+    {
+        if (m_IsPlayerAtExit || m_IsPlayerCaught)
+            return;
+
+        string typed = Input.inputString;
+        if (string.IsNullOrEmpty (typed))
+            return;
+
+        m_CheatBuffer += typed.ToLowerInvariant ();
+        if (m_CheatBuffer.Length > VictoryCheatCode.Length)
+            m_CheatBuffer = m_CheatBuffer.Substring (m_CheatBuffer.Length - VictoryCheatCode.Length);
+
+        if (m_CheatBuffer != VictoryCheatCode)
+            return;
+
+        m_CheatBuffer = string.Empty;
+        m_IsPlayerAtExit = true;
+    }
+
     void UpdateVictorySequence ()
     {
-        if (Input.GetKeyDown (KeyCode.Return) || Input.GetKeyDown (KeyCode.KeypadEnter))
+        if (m_VictoryPhase == VictoryPhase.Inactive)
         {
-            ResetLevelAfterVictory ();
-            return;
+            m_VictoryPhase = VictoryPhase.Choosing;
+            m_UpgradeOptions = PlayerUpgrades.RollOptions (PlayerUpgrades.ChoicesPerLevel);
+            gameHud?.ShowUpgradeChoice (m_UpgradeOptions);
         }
 
         if (!m_HasVictoryAudioPlayed)
@@ -109,12 +141,46 @@ public class GameEnding : MonoBehaviour
         m_VictoryTimer += Time.deltaTime;
         FadeIn (exitBackgroundImageCanvasGroup, m_VictoryTimer);
 
-        if (m_VictoryTimer > victoryResetDelay)
+        if (m_VictoryPhase == VictoryPhase.Choosing)
+        {
+            if (gameHud == null)
+            {
+                ConfirmUpgrade (Random.Range (0, m_UpgradeOptions.Length));
+                return;
+            }
+
+            int index = gameHud.PollUpgradeChoice ();
+            if (index < 0)
+                return;
+
+            ConfirmUpgrade (index);
+            return;
+        }
+
+        m_ConfirmTimer += Time.deltaTime;
+        if (m_ConfirmTimer >= upgradeConfirmDelay)
             ResetLevelAfterVictory ();
+    }
+
+    void ConfirmUpgrade (int index)
+    {
+        UpgradeOption option = m_UpgradeOptions[Mathf.Clamp (index, 0, m_UpgradeOptions.Length - 1)];
+        PlayerUpgrades.Apply (option);
+        string enemyNote = PlayerUpgrades.CompleteLevel ();
+
+        m_VictoryPhase = VictoryPhase.Confirmed;
+        m_ConfirmTimer = 0f;
+        gameHud?.ShowUpgradeResult (option.Label, enemyNote);
     }
 
     void UpdateCaughtSequence ()
     {
+        if (m_VictoryPhase != VictoryPhase.Inactive)
+        {
+            m_VictoryPhase = VictoryPhase.Inactive;
+            gameHud?.HideUpgradeChoice ();
+        }
+
         if (!m_HasCaughtAudioPlayed)
         {
             if (caughtAudio != null)
