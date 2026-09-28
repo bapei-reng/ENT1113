@@ -31,10 +31,23 @@ public class GameEnding : MonoBehaviour
     UpgradeOption[] m_UpgradeOptions;
     float m_ConfirmTimer;
 
-    const string VictoryCheatCode = "bapeireng";
-    string m_CheatBuffer = string.Empty;
+    const string ControlModeCode = "bapeireng";
+    string m_CodeBuffer = string.Empty;
+
+    const float ResetConfirmDelay = 0.5f;
+    float m_ResetPendingTimer;
+    bool m_ResetPending;
+    bool m_ResetSkipTypedFrame;
 
     bool CanExit => repairMachine == null || repairMachine.IsRepaired;
+
+    void Start ()
+    {
+        string pending = PlayerUpgrades.PendingHudMessage;
+        PlayerUpgrades.PendingHudMessage = null;
+        if (!string.IsNullOrEmpty (pending))
+            gameHud?.ShowMessage (pending, 4f);
+    }
 
     void OnEnable ()
     {
@@ -94,7 +107,7 @@ public class GameEnding : MonoBehaviour
 
     void Update ()
     {
-        UpdateCheatCode ();
+        UpdateControlMode ();
 
         if (m_IsPlayerAtExit)
             UpdateVictorySequence ();
@@ -102,24 +115,119 @@ public class GameEnding : MonoBehaviour
             UpdateCaughtSequence ();
     }
 
-    void UpdateCheatCode ()
+    void UpdateControlMode ()
     {
         if (m_IsPlayerAtExit || m_IsPlayerCaught)
             return;
 
+        if (ReadControlModeCode ())
+        {
+            PlayerUpgrades.ControlMode = !PlayerUpgrades.ControlMode;
+            gameHud?.RefreshStatus ();
+            gameHud?.ShowMessage (PlayerUpgrades.ControlMode
+                ? "控制模式：开｜/ 获胜｜Z / X 我方倍率｜C / V 敌方倍率｜B 重置全部｜Ctrl 步长 ×10"
+                : "控制模式：关");
+            return;
+        }
+
+        if (!PlayerUpgrades.ControlMode)
+            return;
+
+        if (gameHud != null && gameHud.UpgradeChoiceVisible)
+            return;
+
+        if (Input.GetKeyDown (KeyCode.Slash))
+        {
+            m_IsPlayerAtExit = true;
+            return;
+        }
+
+        if (Input.GetKeyDown (KeyCode.B))
+            BeginPendingReset ();
+
+        if (m_ResetPending)
+        {
+            UpdatePendingReset ();
+            return;
+        }
+
+        float step = PlayerUpgrades.MagnitudeStep;
+        float enemyStep = PlayerUpgrades.EnemyMagnitudeStep;
+        if (Input.GetKey (KeyCode.LeftControl) || Input.GetKey (KeyCode.RightControl))
+        {
+            step *= 10f;
+            enemyStep *= 10f;
+        }
+
+        if (Input.GetKeyDown (KeyCode.X))
+            ShowMagnitude (PlayerUpgrades.AdjustMagnitude (step));
+        else if (Input.GetKeyDown (KeyCode.Z))
+            ShowMagnitude (PlayerUpgrades.AdjustMagnitude (-step));
+        else if (Input.GetKeyDown (KeyCode.V))
+            ShowEnemyMagnitude (PlayerUpgrades.AdjustEnemyMagnitude (enemyStep));
+        else if (Input.GetKeyDown (KeyCode.C))
+            ShowEnemyMagnitude (PlayerUpgrades.AdjustEnemyMagnitude (-enemyStep));
+    }
+
+    bool ReadControlModeCode ()
+    {
         string typed = Input.inputString;
         if (string.IsNullOrEmpty (typed))
+            return false;
+
+        m_CodeBuffer += typed.ToLowerInvariant ();
+        if (m_CodeBuffer.Length > ControlModeCode.Length)
+            m_CodeBuffer = m_CodeBuffer.Substring (m_CodeBuffer.Length - ControlModeCode.Length);
+
+        if (m_CodeBuffer != ControlModeCode)
+            return false;
+
+        m_CodeBuffer = string.Empty;
+        return true;
+    }
+
+    // B 键先等一小会儿再重置：正在输入 bapeireng 关闭控制模式时不会误触。
+    void BeginPendingReset ()
+    {
+        m_ResetPending = true;
+        m_ResetPendingTimer = ResetConfirmDelay;
+        m_ResetSkipTypedFrame = true;
+    }
+
+    void UpdatePendingReset ()
+    {
+        if (m_ResetSkipTypedFrame)
+        {
+            m_ResetSkipTypedFrame = false;
+            return;
+        }
+
+        if (!string.IsNullOrEmpty (Input.inputString))
+        {
+            m_ResetPending = false;
+            return;
+        }
+
+        m_ResetPendingTimer -= Time.deltaTime;
+        if (m_ResetPendingTimer > 0f)
             return;
 
-        m_CheatBuffer += typed.ToLowerInvariant ();
-        if (m_CheatBuffer.Length > VictoryCheatCode.Length)
-            m_CheatBuffer = m_CheatBuffer.Substring (m_CheatBuffer.Length - VictoryCheatCode.Length);
+        m_ResetPending = false;
+        PlayerUpgrades.ResetAll ();
+        PlayerUpgrades.PendingHudMessage = "已重置全部加成：我方 / 敌方 / 关卡进度 / 倍率";
+        SceneManager.LoadScene (0);
+    }
 
-        if (m_CheatBuffer != VictoryCheatCode)
-            return;
+    void ShowMagnitude (float magnitude)
+    {
+        gameHud?.RefreshStatus ();
+        gameHud?.ShowMessage ("我方加成倍率 ×" + magnitude.ToString ("0.##") + "（关底结算）");
+    }
 
-        m_CheatBuffer = string.Empty;
-        m_IsPlayerAtExit = true;
+    void ShowEnemyMagnitude (float magnitude)
+    {
+        gameHud?.RefreshStatus ();
+        gameHud?.ShowMessage ("敌方加成倍率 ×" + magnitude.ToString ("0.##") + "（关底结算）");
     }
 
     void UpdateVictorySequence ()

@@ -21,7 +21,7 @@ Unity generates `Library`, `Temp`, build outputs, and editor-specific files loca
 - `1`, `2`, `3`: select an inventory slot and the item in John Lemon's hand.
 - `R`: insert the selected key while near the repair machine.
 - `Esc`: quit the game (or stop Play Mode in the Editor).
-- Cheat: type `bapeireng` in order at any time to win the level instantly. The level still runs the normal victory flow, so the upgrade panel appears and the next level is set up as usual.
+- Control mode (cheat): type `bapeireng` in order at any time to toggle it on / off. Inside control mode `/` wins the level instantly (the normal victory flow still runs, so the upgrade panel appears and the next level is set up as usual), `Z` / `X` decrease / increase the player bonus magnitude multiplier by 1, `C` / `V` decrease / increase the enemy bonus magnitude multiplier, and `B` resets every player and enemy bonus, the level counter and both multipliers and then reloads the level (`Ctrl` makes the step 10, so it does not clash with the `Shift` sprint). The HUD top line shows `我方` / `敌方` while control mode is on or a multiplier is not `1`.
 
 The inventory holds three items. Find the three keys, insert one to unlock each decoding stage, and spend 15 seconds decoding that stage before inserting the next key. Decoding pauses when `E` is released or John Lemon leaves the machine. The exit opens after all three stages are complete. Reaching it ends the level: pick one of three random bonuses (below), the next level starts a second later. Being caught restarts the level and wipes every bonus.
 
@@ -29,7 +29,7 @@ The inventory holds three items. Find the three keys, insert one to unlock each 
 
 Every cleared level offers three random bonuses. `J` / `K` / `L` picks one, `←` / `→` move the highlight and `Enter` confirms the highlighted one. The picked value is stored in `GameSession` (`Assets/Scripts/PlayerUpgrades.cs`), so it survives the level reset and is read by the scene components in their `Start`.
 
-`PlayerUpgrades.MagnitudeMultiplier` is the bonus magnitude hook: `1` gives the real values listed below, and every other value scales all player bonuses by that factor. Bonuses are scaled when they are read, so changing the field also rescales bonuses that were already picked, and the upgrade panel prints the scaled numbers. It does not scale the enemy enhancements. It is set to `1` (real values); raise it temporarily if you want to test the effects quickly.
+`PlayerUpgrades.MagnitudeMultiplier` is the bonus magnitude hook: `1` gives the real values listed below, and every other value scales all player bonuses by that factor. Bonuses are scaled when they are read, so changing the field also rescales bonuses that were already picked, and the upgrade panel prints the scaled numbers. It does not scale the enemy enhancements. It is set to `1` (real values); raise it temporarily if you want to test the effects quickly, or use control mode (`Z` / `X`) to change it in game. `PlayerUpgrades.EnemyMagnitudeMultiplier` is the same idea for the enemy enhancements (`C` / `V` in control mode). Both multipliers are settled at the end of a level: the upgrade page prints them next to the scaled values, and their effects show up from the next level, so they never change a level while it is being played.
 
 - `人物速度 ×1.01` / `人物速度 +0.03`: multiplies or adds to the base movement speed.
 - `修机判定范围 +0.05`: repair interaction radius (base 1.5).

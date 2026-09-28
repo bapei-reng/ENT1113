@@ -36,6 +36,43 @@ public static class PlayerUpgrades
     // 数值在读取时换算，所以改完立即对已经拿到的加成生效；只影响玩家加成，不影响敌人加强。
     public static float MagnitudeMultiplier = 1f;
 
+    // 控制模式（游戏内依次按 bapeireng 切换）：Enter 直接获胜，Z / X 增减我方加成倍率，
+    // C / V 增减敌方加成倍率，B 重置敌我全部加成（含关卡进度与两个倍率）。
+    public static bool ControlMode;
+    public const float MagnitudeStep = 1f;
+    public const float EnemyMagnitudeStep = 1f;
+
+    // 敌方加成倍率：与 MagnitudeMultiplier 同思路，但只放大敌人加强（读取时换算）。
+    public static float EnemyMagnitudeMultiplier = 1f;
+
+    // 场景重载后由 GameEnding 取出并显示的一次性提示。
+    public static string PendingHudMessage;
+
+    public static float AdjustMagnitude (float delta)
+    {
+        MagnitudeMultiplier = Mathf.Max (0f, MagnitudeMultiplier + delta);
+        return MagnitudeMultiplier;
+    }
+
+    public static float AdjustEnemyMagnitude (float delta)
+    {
+        EnemyMagnitudeMultiplier = Mathf.Max (0f, EnemyMagnitudeMultiplier + delta);
+        return EnemyMagnitudeMultiplier;
+    }
+
+    // 控制模式 B 键：敌我加成、关卡进度、两个倍率全部回到初始值。
+    public static void ResetAll ()
+    {
+        GameSession.Clear ();
+        MagnitudeMultiplier = 1f;
+        EnemyMagnitudeMultiplier = 1f;
+    }
+
+    static float ScaledEnemy (float value)
+    {
+        return value * Mathf.Max (0f, EnemyMagnitudeMultiplier);
+    }
+
     static float ScaledStep (float baseStep)
     {
         return baseStep * Mathf.Max (0f, MagnitudeMultiplier);
@@ -141,9 +178,9 @@ public static class PlayerUpgrades
     public static float RepairSpeedFactor { get { return 1f + ScaledStep (RepairSpeedStep) * Stacks (RepairSpeedKey); } }
     public static float CorrectPressBonus { get { return ScaledStep (CorrectPressStep) * Stacks (CorrectPressKey); } }
     public static float WrongPressBonus { get { return ScaledStep (WrongPressStep) * Stacks (WrongPressKey); } }
-    public static float EnemyAngleBonus { get { return GameSession.GetFloat (EnemyAngleKey); } }
-    public static float EnemyRadiusBonus { get { return GameSession.GetFloat (EnemyRadiusKey); } }
-    public static float EnemySpeedBonus { get { return GameSession.GetFloat (EnemySpeedKey); } }
+    public static float EnemyAngleBonus { get { return ScaledEnemy (GameSession.GetFloat (EnemyAngleKey)); } }
+    public static float EnemyRadiusBonus { get { return ScaledEnemy (GameSession.GetFloat (EnemyRadiusKey)); } }
+    public static float EnemySpeedBonus { get { return ScaledEnemy (GameSession.GetFloat (EnemySpeedKey)); } }
 
     public static UpgradeOption[] RollOptions (int count)
     {

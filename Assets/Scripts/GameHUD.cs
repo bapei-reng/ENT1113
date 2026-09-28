@@ -104,6 +104,16 @@ public class GameHUD : MonoBehaviour
         sprintText.color = new Color(1f, 1f, 1f, 0.8f);
     }
 
+    public void RefreshStatus()
+    {
+        sprintReadyShown = false;
+        sprintCooldownTenths = -1;
+        sprintActiveShown = false;
+        sprintActiveTenths = -1;
+        RefreshSprint();
+        RefreshMachine();
+    }
+
     public void SetPrompt(string prompt)
     {
         if (promptText == null || prompt == currentPrompt)
@@ -138,8 +148,17 @@ public class GameHUD : MonoBehaviour
         if (upgradeFooterText != null)
         {
             string hint = PlayerUpgrades.NextLevelHint();
+            string multiplier = string.Empty;
+            if (PlayerUpgrades.ControlMode ||
+                !Mathf.Approximately(PlayerUpgrades.MagnitudeMultiplier, 1f) ||
+                !Mathf.Approximately(PlayerUpgrades.EnemyMagnitudeMultiplier, 1f))
+            {
+                multiplier = "结算倍率：我方 ×" + PlayerUpgrades.MagnitudeMultiplier.ToString("0.##") +
+                             "｜敌方 ×" + PlayerUpgrades.EnemyMagnitudeMultiplier.ToString("0.##") + "\n";
+            }
             upgradeFooterText.text =
                 (string.IsNullOrEmpty(hint) ? string.Empty : hint + "\n") +
+                multiplier +
                 "本局加成：" + PlayerUpgrades.DescribeBonuses() + "\n" +
                 "← / → 切换    J / K / L 选择    Enter 确认";
         }
@@ -338,10 +357,19 @@ public class GameHUD : MonoBehaviour
             return;
 
         if (stageText != null)
+        {
+            string bonus = string.Empty;
+            if (PlayerUpgrades.ControlMode ||
+                !Mathf.Approximately(PlayerUpgrades.MagnitudeMultiplier, 1f))
+                bonus += "｜我方 ×" + PlayerUpgrades.MagnitudeMultiplier.ToString("0.##");
+            if (PlayerUpgrades.ControlMode ||
+                !Mathf.Approximately(PlayerUpgrades.EnemyMagnitudeMultiplier, 1f))
+                bonus += "｜敌方 ×" + PlayerUpgrades.EnemyMagnitudeMultiplier.ToString("0.##");
             stageText.text = "第 " + PlayerUpgrades.Level + " 关｜" + (machine.IsRepaired
                 ? "机器已修好，前往出口"
                 : "破译 " + machine.CompletedStages + "/" + RepairMachine.StageCount +
-                  (machine.StageUnlocked ? "  第 " + (machine.CompletedStages + 1) + " 段" : ""));
+                  (machine.StageUnlocked ? "  第 " + (machine.CompletedStages + 1) + " 段" : "")) + bonus;
+        }
 
         if (progressBar != null)
         {
